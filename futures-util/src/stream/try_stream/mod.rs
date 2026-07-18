@@ -14,12 +14,10 @@ use crate::stream::assert_stream;
 use crate::stream::{Inspect, Map};
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-use core::pin::Pin;
 
 use futures_core::{
     future::{Future, TryFuture},
     stream::TryStream,
-    task::{Context, Poll},
 };
 
 mod and_then;
@@ -36,33 +34,29 @@ delegate_all!(
 delegate_all!(
     /// Stream for the [`inspect_ok`](super::TryStreamExt::inspect_ok) method.
     InspectOk<St, F>(
-        Inspect<IntoStream<St>, InspectOkFn<F>>
-    ): Debug + Sink + Stream + FusedStream + AccessInner[St, (. .)] + New[|x: St, f: F| Inspect::new(IntoStream::new(x), inspect_ok_fn(f))]
+        Inspect<St, InspectOkFn<F>>
+    ): Debug + Sink + Stream + FusedStream + AccessInner[St, (.)] + New[|x: St, f: F| Inspect::new(x, inspect_ok_fn(f))]
 );
 
 delegate_all!(
     /// Stream for the [`inspect_err`](super::TryStreamExt::inspect_err) method.
     InspectErr<St, F>(
-        Inspect<IntoStream<St>, InspectErrFn<F>>
-    ): Debug + Sink + Stream + FusedStream + AccessInner[St, (. .)] + New[|x: St, f: F| Inspect::new(IntoStream::new(x), inspect_err_fn(f))]
+        Inspect<St, InspectErrFn<F>>
+    ): Debug + Sink + Stream + FusedStream + AccessInner[St, (.)] + New[|x: St, f: F| Inspect::new(x, inspect_err_fn(f))]
 );
-
-mod into_stream;
-#[allow(unreachable_pub)] // https://github.com/rust-lang/rust/issues/57411
-pub use self::into_stream::IntoStream;
 
 delegate_all!(
     /// Stream for the [`map_ok`](super::TryStreamExt::map_ok) method.
     MapOk<St, F>(
-        Map<IntoStream<St>, MapOkFn<F>>
-    ): Debug + Sink + Stream + FusedStream + AccessInner[St, (. .)] + New[|x: St, f: F| Map::new(IntoStream::new(x), map_ok_fn(f))]
+        Map<St, MapOkFn<F>>
+    ): Debug + Sink + Stream + FusedStream + AccessInner[St, (.)] + New[|x: St, f: F| Map::new(x, map_ok_fn(f))]
 );
 
 delegate_all!(
     /// Stream for the [`map_err`](super::TryStreamExt::map_err) method.
     MapErr<St, F>(
-        Map<IntoStream<St>, MapErrFn<F>>
-    ): Debug + Sink + Stream + FusedStream + AccessInner[St, (. .)] + New[|x: St, f: F| Map::new(IntoStream::new(x), map_err_fn(f))]
+        Map<St, MapErrFn<F>>
+    ): Debug + Sink + Stream + FusedStream + AccessInner[St, (.)] + New[|x: St, f: F| Map::new(x, map_err_fn(f))]
 );
 
 mod or_else;
@@ -351,34 +345,6 @@ pub trait TryStreamExt: TryStream {
         Self: Sized,
     {
         assert_stream::<Result<Self::Ok, Self::Error>, _>(InspectErr::new(self, f))
-    }
-
-    /// Wraps a [`TryStream`] into a type that implements
-    /// [`Stream`](futures_core::stream::Stream)
-    ///
-    /// [`TryStream`]s currently do not implement the
-    /// [`Stream`](futures_core::stream::Stream) trait because of limitations
-    /// of the compiler.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use futures::stream::{Stream, TryStream, TryStreamExt};
-    ///
-    /// # type T = i32;
-    /// # type E = ();
-    /// fn make_try_stream() -> impl TryStream<Ok = T, Error = E> { // ... }
-    /// # futures::stream::empty()
-    /// # }
-    /// fn take_stream(stream: impl Stream<Item = Result<T, E>>) { /* ... */ }
-    ///
-    /// take_stream(make_try_stream().into_stream());
-    /// ```
-    fn into_stream(self) -> IntoStream<Self>
-    where
-        Self: Sized,
-    {
-        assert_stream::<Result<Self::Ok, Self::Error>, _>(IntoStream::new(self))
     }
 
     /// Creates a future that attempts to resolve the next item in the stream.
@@ -1077,10 +1043,10 @@ pub trait TryStreamExt: TryStream {
     ///
     ///     let mut buffered = stream_of_futures.try_buffered(10);
     ///
-    ///     assert!(buffered.try_poll_next_unpin(cx).is_pending());
+    ///     assert!(buffered.poll_next_unpin(cx).is_pending());
     ///
     ///     send_two.send(2i32)?;
-    ///     assert!(buffered.try_poll_next_unpin(cx).is_pending());
+    ///     assert!(buffered.poll_next_unpin(cx).is_pending());
     ///     Ok::<_, i32>(buffered)
     /// }).await?;
     ///
@@ -1118,20 +1084,6 @@ pub trait TryStreamExt: TryStream {
         assert_stream::<Result<<Self::Ok as TryFuture>::Ok, Self::Error>, _>(TryBuffered::new(
             self, n,
         ))
-    }
-
-    // TODO: false positive warning from rustdoc. Verify once #43466 settles
-    //
-    /// A convenience method for calling [`TryStream::try_poll_next`] on [`Unpin`]
-    /// stream types.
-    fn try_poll_next_unpin(
-        &mut self,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Result<Self::Ok, Self::Error>>>
-    where
-        Self: Unpin,
-    {
-        Pin::new(self).try_poll_next(cx)
     }
 
     /// Wraps a [`TryStream`] into a stream compatible with libraries using

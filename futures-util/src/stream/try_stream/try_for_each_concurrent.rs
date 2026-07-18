@@ -79,7 +79,7 @@ where
             // Check if we've already created a number of futures greater than `limit`
             if this.limit.map(|limit| limit.get() > this.futures.len()).unwrap_or(true) {
                 let poll_res = match this.stream.as_mut().as_pin_mut() {
-                    Some(stream) => stream.try_poll_next(cx),
+                    Some(stream) => stream.poll_next(cx),
                     None => Poll::Ready(None),
                 };
 

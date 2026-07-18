@@ -37,7 +37,7 @@ where
         let mut this = self.project();
 
         Poll::Ready(Ok(loop {
-            if let Some(x) = ready!(this.stream.as_mut().try_poll_next(cx)?) {
+            if let Some(x) = ready!(this.stream.as_mut().poll_next(cx)?) {
                 if let Some(a) = this.accum {
                     a.extend(x)
                 } else {

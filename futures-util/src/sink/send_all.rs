@@ -1,4 +1,4 @@
-use crate::stream::{Fuse, StreamExt, TryStreamExt};
+use crate::stream::{Fuse, StreamExt};
 use core::fmt;
 use core::pin::Pin;
 use futures_core::future::Future;
@@ -84,7 +84,7 @@ where
         }
 
         loop {
-            match this.stream.try_poll_next_unpin(cx)? {
+            match this.stream.poll_next_unpin(cx)? {
                 Poll::Ready(Some(item)) => ready!(this.try_start_send(cx, item))?,
                 Poll::Ready(None) => {
                     ready!(Pin::new(&mut this.sink).poll_flush(cx))?;

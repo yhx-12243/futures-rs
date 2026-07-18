@@ -70,7 +70,7 @@ where
         Poll::Ready(loop {
             if let Some(fut) = this.future.as_mut().as_pin_mut() {
                 // we're currently processing a future to produce a new accum value
-                let res = ready!(fut.try_poll(cx));
+                let res = ready!(fut.poll(cx));
                 this.future.set(None);
                 match res {
                     Ok(a) => *this.accum = Some(a),
@@ -78,7 +78,7 @@ where
                 }
             } else if this.accum.is_some() {
                 // we're waiting on a new item from the stream
-                let res = ready!(this.stream.as_mut().try_poll_next(cx));
+                let res = ready!(this.stream.as_mut().poll_next(cx));
                 let a = this.accum.take().unwrap();
                 match res {
                     Some(Ok(item)) => this.future.set(Some((this.f)(a, item))),
