@@ -203,6 +203,7 @@ mod if_alloc {
     }
 
     #[cfg(feature = "std")]
+    #[allow(clippy::std_instead_of_core)] // `core::panic::AssertUnwindSafe` has MSRV 1.56 rather than 1.41
     impl<S: Stream> Stream for std::panic::AssertUnwindSafe<S> {
         type Item = S::Item;
 
