@@ -92,14 +92,7 @@ jobs:
           tool: rust@${{ matrix.rust }},cargo-hack
           fallback: none
       - name: Mask other packages
-        uses: ciiiii/toml-editor
-        with:
-          file: Cargo.toml
-          key: workspace.members
-          value:
-            - futures-core
-            - futures-io
-            - futures-sink
+        run: yq -i -p toml -o toml '.workspace.members = ["futures-core", "futures-io", "futures-sink"]' Cargo.toml
       # remove dev-dependencies to avoid https://github.com/rust-lang/cargo/issues/4866
       - run: cargo hack --remove-dev-deps --workspace
       # Check no-default-features
