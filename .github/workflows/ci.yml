@@ -93,14 +93,16 @@ jobs:
           fallback: none
       - name: Mask other packages
         run: yq -i -p toml -o toml '.workspace.members = ["futures-core", "futures-io", "futures-sink"]' Cargo.toml
+      # HACK: prevent that `cargo hack` will try to run `cargo generate-lockfile` which will fail.
+      - run: touch Cargo.lock
       # remove dev-dependencies to avoid https://github.com/rust-lang/cargo/issues/4866
-      - run: cargo hack --remove-dev-deps --workspace
+      - run: cargo hack --lock --remove-dev-deps --workspace
       # Check no-default-features
       - run: cargo hack build --workspace --ignore-private --no-default-features
       # Check alloc feature
       - run: cargo hack build --workspace --ignore-private --no-default-features --features alloc --ignore-unknown-features
       # Check std feature
-      - run: cargo hack build --workspace --ignore-private --no-default-features --features stdt
+      - run: cargo hack build --workspace --ignore-private --no-default-features --features std
 
   util-msrv:
     name: cargo +${{ matrix.rust }} build
