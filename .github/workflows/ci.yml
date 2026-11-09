@@ -92,10 +92,10 @@ jobs:
           tool: rust@${{ matrix.rust }},cargo-hack
           fallback: none
       - name: Mask other packages
-        uses: cssnr/toml-action
+        uses: ciiiii/toml-editor
         with:
           file: Cargo.toml
-          path: $.workspace.members
+          key: workspace.members
           value:
             - futures-core
             - futures-io
